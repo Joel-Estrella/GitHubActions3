@@ -1,0 +1,40 @@
+name: Generación de código
+
+# 6. Se dispara automáticamente con cada push a main
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # 7. Job llamado generar-codigo
+  generar-codigo:
+    # 8. Ejecutar en la última versión de Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      # 9.1. Descargar el código del repositorio
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      # 9.2. Configurar Java 17 (Temurin)
+      - name: Configurar Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 9.3. Ejecutar el comando de generación de código con OpenAPI Generator
+      - name: Generar código con OpenAPI Generator
+        run: java -jar openapi-generator-cli.jar generate -i api.yaml -g python-flask -o ./openapi_server
+
+      # 9.4. Comprimir la carpeta generada
+      - name: Comprimir el código generado
+        run: zip -r openapi_server.zip openapi_server
+
+      # 9.5. Subir el fichero comprimido como artefacto descargable
+      - name: Subir artefacto generado
+        uses: actions/upload-artifact@v4
+        with:
+          name: codigo-generado
+          path: openapi_server.zip
