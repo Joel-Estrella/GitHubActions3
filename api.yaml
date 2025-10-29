@@ -1,418 +1,209 @@
-openapi: "3.1.0"
-
+openapi: 3.0.4
 info:
-  title: Servicio de Compras
-  description: |-
-    Servicio de Undersounds dedicado a la gestión de compras sobre el catálogo.
-  license:
-    name: Apache 2.0
-    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  title: Stats-service API
   version: 1.0.0
-
+  description: API para gestionar las estadísticas del sistema
 servers:
-  - url: https://undersounds.com/api/v1
-
-tags:
-  - name: order
-    description: Compras de contenido en la plataforma.
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-  schemas:
-    Buyer:
-      type: object
-      description: Información del comprador.
-      required:
-        - name
-        - username
-      properties:
-        name:
-          type: string
-          description: Nombre completo del comprador.
-          example: "Miguel de Cervantes Saavedra"
-        username:
-          type: string
-          description: Nombre de usuario único del comprador.
-          example: "miguel_cervantes16"
-
-    Seller:
-      type: object
-      description: Información del vendedor.
-      required:
-        - name
-        - username
-        - pfp
-      properties:
-        name:
-          type: string
-          description: Nombre completo del vendedor.
-          example: "Coldplay"
-        username:
-          type: string
-          description: Nombre de usuario completo del vendedor.
-          example: "coldplay"
-        pfp:
-          type: string
-          description: Ruta de la foto de perfil del vendedor.
-          example: "https://undersounds.es/v1/users/pfps/coldplay.jpg"
-
-    OrderStatus:
-      type: string
-      description: Estado de la compra.
-      enum:
-        - PENDING
-        - PAID
-        - SHIPPED
-        - CANCELLED
-      example: PAID
-
-    OrderItem:
-      type: object
-      description: Información del un artículo dentro de la compra.
-      required:
-        - publicId
-        - name
-        - imageSrc
-        - description
-        - seller
-        - quantity
-        - price
-        - total
-      properties:
-        publicId:
-          type: string
-          format: uuid
-          description: Identificador público único del producto.
-          example: "550e8400-e29b-41d4-a716-446655440000"
-        name:
-          type: string
-          description: Nombre completo del producto.
-          example: "Camiseta de Coldplay"
-        imageSrc:
-          type: string
-          description: Imágen del producto.
-          example: "https://undersounds.es/v1/products/images/550e8400-e29b-41d4-a716-446655440000.jpg"
-        description:
-          type: string
-          description: Descripción del producto.
-          example: "Una camiseta con el logo del último álbum de Coldplay en azul. Talla M"
-        seller:
-          $ref: '#/components/schemas/Seller'
-          description: Vendedor del producto.
-        quantity:
-          type: number
-          format: int64
-          description: Cantidad de este producto comprada.
-          example: 2
-        price:
-          type: number
-          format: float
-          description: Precio en euros del producto.
-          example: "9.99"
-        total:
-          type: number
-          format: float
-          description: Total en euros de la cantidad del producto comprada.
-          example: "19.98"
-
-    OrderResponse:
-      type: object
-      description: Respuesta ofrecida al cliente con información de una sola compra.
-      required:
-        - publicId
-        - madeBy
-        - items
-        - createdAt
-        - status
-        - total
-      properties:
-        publicId:
-          type: string
-          format: uuid
-          description: Identificador público único de la compra.
-          example: "550e8400-e29b-41d4-a716-446655440000"
-        madeBy:
-          $ref: '#/components/schemas/Buyer'
-          description: Usuario que ha realizado la compra.
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/OrderItem'
-          description: Productos que se han comprado.
-        createdAt:
-          type: string
-          format: date-time
-          description: Fecha en la que se realizó la compra.
-          example: "2025-10-17T14:30:00Z"
-        status: 
-          $ref: '#/components/schemas/OrderStatus'
-          description: Estado de la compra.
-        total:
-          type: number
-          format: float
-          description: Coste total en euros.
-          example: 19.99
-
-    CreateOrderRequest:
-      type: object
-      description: Petición para crear una compra.
-      required:
-        - items
-      properties:
-        items:
-          type: array
-          description: Productos a comprar con sus cantidades.
-          items:
-            type: object
-            required:
-              - productId
-              - quantity
-            properties:
-              productId:
-                type: string
-                format: uuid
-                description: Identificador público del producto.
-                example: "550e8400-e29b-41d4-a716-446655440000"
-              quantity:
-                type: integer
-                minimum: 1
-                description: Cantidad de unidades de este producto.
-                example: 2
-
-    OrdersPage:
-      type: object
-      description: Página ofrecida al cliente con información de las compras.
-      properties:
-        content:
-          type: array
-          items:
-            $ref: "#/components/schemas/OrderResponse"
-          description: Compras filtradas.
-        page:
-          type: integer
-          example: 0
-          description: Página que se quiere consultar.
-        size:
-          type: integer
-          example: 20
-          description: Tamaño de la página.
-        totalElements:
-          type: integer
-          example: 125
-          description: Número de compras obtenidas.
-        totalPages:
-          type: integer
-          example: 7
-          description: Número de páginas totales del tamaño indicado.
-
-    ErrorResponse:
-      type: object
-      description: Objeto con información del error en la petición.
-      required:
-        - code
-        - message
-      properties:
-        code:
-          type: integer
-          description: Código interno del error.
-          example: 400
-        message:
-          type: string
-          description: Mensaje descriptivo del error.
-          example: "El campo 'items' es obligatorio."
-        details:
-          type: array
-          description: Información adicional sobre el error.
-          items:
-            type: string
-          example: [ "El campo 'items[0].quantity' debe ser mayor que 0" ]
-
-  responses:
-    UnauthorizedError:
-      description: Usuario no autenticado.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          examples:
-            unauthorized:
-              summary: JWT inválido o ausente
-              value:
-                code: 401
-                message: "No autorizado"
-
-    OrderNotFoundError:
-      description: Compra no encontrada.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          examples:
-            notFound:
-              summary: Compra no encontrado
-              value:
-                code: 404
-                message: "La compra 550e8400-e29b-41d4-a716-446655440000 no existe"
-
-security:
-  - bearerAuth: []
+  - url: http://localhost:8080/api
 
 paths:
-  /orders:
+  /stats/public/summary:
     get:
       tags:
-        - order
-      summary: Listar compras con filtros
-      description: Obtiene una lista de compras filtradas por cualquier atributo. Requiere JWT.
-      security:
-        - bearerAuth: [ ]
-      parameters:
-        - in: query
-          name: seller
-          schema:
-            type: string
-          description: Filtra por nombre de usuario del vendedor. Si no se proporciona, se devuelven las compras de todos los vendedores.
-          example: "coldplay_official"
-        - in: query
-          name: status
-          schema:
-            $ref: "#/components/schemas/OrderStatus"
-          description: Filtra por estado de la compra. Si no se proporciona, se devuelven las compras sin tener en cuenta el estado.
-          example: "PAID"
-        - in: query
-          name: dateFrom
-          schema:
-            type: string
-            format: date
-          description: Fecha mínima de la compra. Si no se proporciona, se devuelven las compras desde la primera.
-          example: "2025-10-01"
-        - in: query
-          name: dateTo
-          schema:
-            type: string
-            format: date
-          description: Fecha máxima de la compra. Si no se proporciona, se devuelven las compras hasta la última.
-          example: "2025-10-17"
-        - in: query
-          name: page
-          schema:
-            type: integer
-            default: 0
-          description: Número de página.
-          example: 0
-        - in: query
-          name: size
-          schema:
-            type: integer
-            default: 20
-          description: Tamaño de página.
-          example: 20
+        - Estadísticas
+      summary: Obtiene el resumen general de las estadísticas de la plataforma
+      description: Devuelve un resumen con el número total de usuarios, canciones y reproducciones mensuales en la plataforma.
       responses:
         '200':
-          description: Lista paginada de compras.
+          description: Resumen de estadísticas generales recuperado correctamente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrdersPage'
+                $ref: '#/components/schemas/StatsSummaryDTO'
+              example:
+                totalUsers: 15400
+                totalSongs: 32450
+                totalMonthlyStreams: 982340
+        '500':
+          description: Error interno al recuperar las estadísticas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "InternalServerError"
+                message: "No se pudieron recuperar las estadísticas generales"
+                statusCode: 500
+                timestamp: "2025-10-05T14:00:00Z"
 
+  /stats/public/top-artists:
+    get:
+      tags:
+        - Estadísticas
+      summary: Obtiene los 50 artistas más populares de un mes y año específicos
+      description: Devuelve una lista de hasta 50 artistas más populares según sus reproducciones en el mes y año indicados.
+      parameters:
+        - in: query
+          name: month
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          required: true
+          description: Mes (1-12) para el cual se desea obtener el top de artistas.
+          example: 9
+        - in: query
+          name: year
+          schema:
+            type: integer
+            minimum: 2000
+          required: true
+          description: Año para el cual se desea obtener el top de artistas.
+          example: 2025
+      responses:
+        '200':
+          description: Lista de los 50 artistas más populares recuperada con éxito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArtistStatsDTO'
+              example:
+                - artistId: 1
+                  artisticName: "WILYWNKA"
+                  totalStreams: 123456
+                  monthlyStreams: 43210
+                - artistId: 2
+                  artisticName: "DJ Leo"
+                  totalStreams: 115000
+                  monthlyStreams: 40500
+        '400':
+          description: Parámetros de mes o año inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "El mes debe estar entre 1 y 12, y el año debe ser válido"
+                statusCode: 400
+                timestamp: "2025-10-05T14:05:00Z"
+        '500':
+          description: Error interno al recuperar las estadísticas de los artistas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "InternalServerError"
+                message: "No se pudo recuperar el top de artistas"
+                statusCode: 500
+                timestamp: "2025-10-05T14:07:00Z"
+
+  /stats/public/custom-report:
     post:
       tags:
-        - order
-      summary: Crear una nueva compra
-      description: Permite crear una compra con los productos indicados. Requiere JWT.
-      security:
-        - bearerAuth: [ ]
+        - Estadísticas
+      summary: Genera un informe estadístico personalizado
+      description: Permite crear un informe estadístico filtrado por fechas, artistas o géneros.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateOrderRequest'
-
+              $ref: '#/components/schemas/CustomReportDTO'
+            example:
+              name: "Informe Septiembre 2025"
+              month: 9
+              year: 2025
+              topArtists: true
+              genres: [ROCK, JAZZ]
       responses:
         '201':
-          description: Compra creada correctamente.
+          description: Informe creado correctamente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponse'
+                $ref: '#/components/schemas/ReportResponseDTO'
+              example:
+                reportId: 101
+                name: "Informe Septiembre 2025"
+                status: "CREATED"
         '400':
-          description: Error en el body de la petición.
+          description: Datos inválidos para generar el informe
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                errorQuantity:
-                  summary: Cantidad incorrecta.
-                  value:
-                    code: 400
-                    message: "Solo existen 2 unidades para el artículo 550e8400-e29b-41d4-a716-446655440000 y se han especificado 3."
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '404':
-          description: Algunos de los items no se encontraron.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                notFound:
-                  summary: Contenido no encontrado
-                  value:
-                    code: 404
-                    message: "El artículo 550e8400-e29b-41d4-a716-446655440000 no existe"
+              example:
+                error: "Bad Request"
+                message: "Mes y año son obligatorios"
+                statusCode: 400
+                timestamp: "2025-10-05T15:00:00Z"
 
-  /orders/{orderId}:
-    get:
+  /stats/public/custom-report/{reportId}:
+    put:
       tags:
-        - order
-      summary: Obtener una compra
-      description: Recupera los datos de una compra por su ID público. Requiere JWT.
-      security:
-        - bearerAuth: [ ]
+        - Estadísticas
+      summary: Reemplaza un informe estadístico existente
+      description: Reemplaza completamente un informe previamente creado por uno nuevo.
       parameters:
         - in: path
-          name: orderId
-          required: true
-          description: ID público de la compra.
+          name: reportId
           schema:
-            type: string
-            format: uuid
-            example: "550e8400-e29b-41d4-a716-446655440000"
+            type: integer
+          required: true
+          description: ID del informe a reemplazar
+          example: 101
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomReportDTO'
+            example:
+              name: "Informe Septiembre 2025 - Actualizado"
+              month: 9
+              year: 2025
+              topArtists: false
+              genres: [POP]
       responses:
         '200':
-          description: Datos de la compra.
+          description: Informe reemplazado correctamente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                $ref: '#/components/schemas/ReportResponseDTO'
+              example:
+                reportId: 101
+                name: "Informe Septiembre 2025 - Actualizado"
+                status: "UPDATED"
         '404':
-          $ref: '#/components/responses/OrderNotFoundError'
+          description: Informe no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Informe no encontrado"
+                statusCode: 404
+                timestamp: "2025-10-05T15:10:00Z"
 
     patch:
       tags:
-        - order
-      summary: Actualizar algún atributo de una compra
-      description: Permite actualizar atributos de una compra (ej. estado). Requiere JWT o rol administrador.
-      security:
-        - bearerAuth: [ ]
+        - Estadísticas
+      summary: Actualiza parcialmente un informe estadístico
+      description: Permite actualizar solo algunos campos del informe, como el nombre o filtros.
       parameters:
         - in: path
-          name: orderId
-          required: true
-          description: ID público de la compra.
+          name: reportId
           schema:
-            type: string
-            format: uuid
-            example: "550e8400-e29b-41d4-a716-446655440000"
+            type: integer
+          required: true
+          description: ID del informe a actualizar
+          example: 101
       requestBody:
         required: true
         content:
@@ -420,46 +211,133 @@ paths:
             schema:
               type: object
               properties:
-                status:
-                  $ref: "#/components/schemas/OrderStatus"
-                  description: Nuevo estado de la compra.
+                name:
+                  type: string
+                topArtists:
+                  type: boolean
+              example:
+                name: "Informe Septiembre 2025 - Parcial"
+                topArtists: true
       responses:
         '200':
-          description: Compra actualizada correctamente.
+          description: Informe actualizado parcialmente
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrderResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
+                $ref: '#/components/schemas/ReportResponseDTO'
+              example:
+                reportId: 101
+                name: "Informe Septiembre 2025 - Parcial"
+                status: "PARTIALLY_UPDATED"
         '404':
-          $ref: '#/components/responses/OrderNotFoundError'
-
-    delete:
-      tags:
-        - order
-      summary: Eliminar una compra
-      description: Si su estado aún está PENDIENTE el usuario puede cancelarla, de lo contrario solo administradores pueden eliminarla.
-      security:
-        - bearerAuth: [ ]
-      parameters:
-        - in: path
-          name: orderId
-          description: Identificador público de la compra a eliminar/cancelar.
-          required: true
-          schema:
-            type: string
-            format: uuid
-            example: "550e8400-e29b-41d4-a716-446655440000"
-      responses:
-        '204':
-          description: Compra eliminada correctamente.
+          description: Informe no encontrado
           content:
-            application/txt:
+            application/json:
               schema:
-                type: string
-                example: "Compra eliminada correctamente"
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '404':
-          $ref: '#/components/responses/OrderNotFoundError'
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Informe no encontrado"
+                statusCode: 404
+                timestamp: "2025-10-05T15:12:00Z"
+
+components:
+  schemas:
+    StatsSummaryDTO:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          example: 15400
+          description: Número total de usuarios registrados en la plataforma
+        totalSongs:
+          type: integer
+          example: 32450
+          description: Número total de canciones subidas al sistema
+        totalMonthlyStreams:
+          type: integer
+          example: 982340
+          description: Número total de reproducciones acumuladas en el mes actual
+
+    ArtistStatsDTO:
+      type: object
+      properties:
+        artistId:
+          type: integer
+          example: 101
+          description: Identificador único del artista
+        artisticName:
+          type: string
+          example: "TORAUMA"
+          description: Nombre artístico del artista
+        totalStreams:
+          type: integer
+          example: 120000
+          description: Número total de reproducciones históricas del artista
+        monthlyStreams:
+          type: integer
+          example: 45000
+          description: Número total de reproducciones obtenidas en el mes y año especificados
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "InternalServerError"
+        message:
+          type: string
+          example: "No se pudieron recuperar las estadísticas generales"
+        statusCode:
+          type: integer
+          example: 500
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-10-05T14:00:00Z"
+
+    CustomReportDTO:
+      type: object
+      required:
+        - name
+        - month
+        - year
+      properties:
+        name:
+          type: string
+          description: Nombre del informe
+          example: "Informe Septiembre 2025"
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Mes del informe
+          example: 9
+        year:
+          type: integer
+          minimum: 2000
+          description: Año del informe
+          example: 2025
+        topArtists:
+          type: boolean
+          description: Indica si se incluyen los 50 artistas más populares
+          example: true
+        genres:
+          type: array
+          items:
+            type: string
+          description: Filtros por géneros musicales
+          example: [ROCK, JAZZ]
+
+    ReportResponseDTO:
+      type: object
+      properties:
+        reportId:
+          type: integer
+          example: 101
+        name:
+          type: string
+          example: "Informe Septiembre 2025"
+        status:
+          type: string
+          example: "CREATED"
